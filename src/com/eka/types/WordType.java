@@ -11,6 +11,4 @@ public enum WordType {
     SPACE,
     NEWLINE;
 
-    private WordType() {
-    }
 }

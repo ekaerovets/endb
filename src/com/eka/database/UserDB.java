@@ -5,6 +5,7 @@
 
 package com.eka.database;
 
+import com.eka.types.CoreException;
 import com.eka.types.Locale;
 import com.eka.types.WordState;
 
@@ -14,202 +15,64 @@ import java.util.Map;
 
 
 public class UserDB {
-    Map<String, Integer> data_en;
-    Map<String, Integer> data_es;
-    Map<String, Integer> data_ch;
+
     Map<String, Integer> data_cur;
     Map<String, Map<String, Integer>> data;
 
     public UserDB() {
     }
 
+    @SuppressWarnings("unchecked")
     public void open(String workingDir) {
-        this.data = new HashMap<>();
-        data_ch = new HashMap<>();
-        data_en = new HashMap<>();
-        data_es = new HashMap<>();
-        data.put("en", data_en);
-        data.put("es", data_es);
-        data.put("ch", data_ch);
+        data = new HashMap<>();
 
-
-        try {
-            FileInputStream e = new FileInputStream(workingDir + "data/data.dat");
-            Throwable var3 = null;
-
-            try {
-                ObjectInputStream x2 = new ObjectInputStream(e);
-                Throwable var5 = null;
-
-                try {
-                    this.data = (Map) x2.readObject();
-                    this.data_en = (Map) this.data.get("en");
-                    this.data_es = (Map) this.data.get("es");
-                    this.data_ch = (Map) this.data.get("ch");
-                } catch (Throwable var30) {
-                    var5 = var30;
-                    throw var30;
-                } finally {
-                    if (x2 != null) {
-                        if (var5 != null) {
-                            try {
-                                x2.close();
-                            } catch (Throwable var29) {
-                                var5.addSuppressed(var29);
-                            }
-                        } else {
-                            x2.close();
-                        }
-                    }
-
-                }
-            } catch (Throwable var32) {
-                var3 = var32;
-                throw var32;
-            } finally {
-                if (e != null) {
-                    if (var3 != null) {
-                        try {
-                            e.close();
-                        } catch (Throwable var28) {
-                            var3.addSuppressed(var28);
-                        }
-                    } else {
-                        e.close();
-                    }
-                }
-
-            }
-        } catch (ClassNotFoundException | IOException var34) {
-            var34.printStackTrace();
+        String filePath = workingDir + "data/data.dat";
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filePath))) {
+            data = (Map<String, Map<String, Integer>>) in.readObject();
+        } catch (Exception e) {
+            throw new CoreException("Error while opening DB", e);
         }
-
     }
 
     public void create(String workingDir) {
-        try {
-            FileOutputStream e = new FileOutputStream(workingDir + "data/data.dat");
-            Throwable var3 = null;
-
-            try {
-                ObjectOutputStream x2 = new ObjectOutputStream(e);
-                Throwable var5 = null;
-
-                try {
-                    x2.writeObject(this.data);
-                } catch (Throwable var30) {
-                    var5 = var30;
-                    throw var30;
-                } finally {
-                    if (x2 != null) {
-                        if (var5 != null) {
-                            try {
-                                x2.close();
-                            } catch (Throwable var29) {
-                                var5.addSuppressed(var29);
-                            }
-                        } else {
-                            x2.close();
-                        }
-                    }
-
-                }
-            } catch (Throwable var32) {
-                var3 = var32;
-                throw var32;
-            } finally {
-                if (e != null) {
-                    if (var3 != null) {
-                        try {
-                            e.close();
-                        } catch (Throwable var28) {
-                            var3.addSuppressed(var28);
-                        }
-                    } else {
-                        e.close();
-                    }
-                }
-
-            }
-        } catch (IOException var34) {
-            var34.printStackTrace();
+        String filePath = workingDir + "data/data.dat";
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filePath))) {
+            out.writeObject(this.data);
+        } catch (IOException e) {
+            throw new CoreException("Error while creating user DB", e);
         }
-
     }
 
     public void setLanguage(Locale locale) {
-        if (this.data == null) {
+        if (data == null) {
             System.out.println("in setLanguage: no data loaded");
         } else {
             switch (locale) {
                 case EN:
-                    this.data_cur = this.data_en;
+                    data_cur = data.get("en");
                     break;
                 case ES:
-                    this.data_cur = this.data_es;
+                    data_cur = data.get("es");
                     break;
                 case CH:
-                    this.data_cur = this.data_ch;
+                    data_cur = data.get("ch");
             }
 
         }
     }
 
     public void save(String workingDir) {
-        if (this.data != null) {
-            try {
-                FileOutputStream e = new FileOutputStream(workingDir + "data/data.dat");
-                Throwable var3 = null;
-
-                try {
-                    ObjectOutputStream x2 = new ObjectOutputStream(e);
-                    Throwable var5 = null;
-
-                    try {
-                        x2.writeObject(this.data);
-                    } catch (Throwable var30) {
-                        var5 = var30;
-                        throw var30;
-                    } finally {
-                        if (x2 != null) {
-                            if (var5 != null) {
-                                try {
-                                    x2.close();
-                                } catch (Throwable var29) {
-                                    var5.addSuppressed(var29);
-                                }
-                            } else {
-                                x2.close();
-                            }
-                        }
-
-                    }
-                } catch (Throwable var32) {
-                    var3 = var32;
-                    throw var32;
-                } finally {
-                    if (e != null) {
-                        if (var3 != null) {
-                            try {
-                                e.close();
-                            } catch (Throwable var28) {
-                                var3.addSuppressed(var28);
-                            }
-                        } else {
-                            e.close();
-                        }
-                    }
-
-                }
-            } catch (IOException var34) {
-                var34.printStackTrace();
+        if (data != null) {
+            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(workingDir + "data/data.dat"))) {
+                out.writeObject(data);
+            } catch (IOException e) {
+                throw new CoreException("Save data error", e);
             }
-
         }
     }
 
     public WordState getWordStatus(String word) {
-        Integer status = (Integer) this.data_cur.get(word.toLowerCase());
+        Integer status = data_cur.get(word.toLowerCase());
         if (status == null)
             return WordState.UNKNOWN;
         else if (status == 1)
@@ -236,8 +99,11 @@ public class UserDB {
     }
 
     public int getSize() {
+        if (data_cur == null)
+            return -1;
         return this.data_cur.size();
     }
+
 
 
 }

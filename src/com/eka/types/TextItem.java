@@ -14,8 +14,7 @@ public class TextItem {
     // type - is it a word, space, other characters or newline symbol
     private WordType type;
 
-    // link to the element in unique words list
-    private UniqueWord parent;
+    private int firstId;
 
     // index of the next occurrence of the word
     private int nextId;
@@ -105,11 +104,11 @@ public class TextItem {
         this.type = type;
     }
 
-    public UniqueWord getParent() {
-        return parent;
+    public int getFirstId() {
+        return firstId;
     }
 
-    public void setParent(UniqueWord parent) {
-        this.parent = parent;
+    public void setFirstId(int firstId) {
+        this.firstId = firstId;
     }
 }

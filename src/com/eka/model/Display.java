@@ -16,20 +16,26 @@ import java.util.Iterator;
 import java.util.List;
 
 
-public class Display implements Iterable<IDisplayItem> {
-    private List<Display.displayItem> displayItems;
-    private Runtime runtime;
+public class Display {
+
+    public List<DisplayItem> getDisplayItems() {
+        return displayItems;
+    }
+
+    private List<DisplayItem> displayItems;
+
     private int lineHeight;
     private int displayHeight;
     private int heightInLines;
     private int selectionId;
 
-    public Iterator<IDisplayItem> iterator() {
-        return new displayItemsIterator<>();
-    }
+    private Core core;
+    private Settings settings;
 
-    public int getSelectionId(boolean textMode) {
-        return !textMode && this.selectionId != -1?((UniqueWord)this.runtime.uniqueWords.get(this.selectionId)).firstOccurrence:this.selectionId;
+    public List<Integer> lineStarts;
+
+    public int getSelectionId() {
+        return selectionId;
     }
 
     public void setSelectionId(int selectionId) {
@@ -41,62 +47,72 @@ public class Display implements Iterable<IDisplayItem> {
     }
 
     private void calcHeightInLines() {
-        this.heightInLines = 20;
-        if(this.lineHeight > 0) {
-            this.heightInLines = this.displayHeight / this.lineHeight;
-            if(this.heightInLines > 100) {
-                this.heightInLines = 100;
+        heightInLines = 20;
+        if(lineHeight > 0) {
+            heightInLines = this.displayHeight / lineHeight;
+            if(heightInLines > 100) {
+                heightInLines = 100;
             }
         }
-
     }
 
     public void setLineHeight(int lineHeight) {
         this.lineHeight = lineHeight;
-        this.calcHeightInLines();
+        calcHeightInLines();
     }
 
     public void setDisplayHeight(int displayHeight) {
         this.displayHeight = displayHeight;
-        this.calcHeightInLines();
+        calcHeightInLines();
     }
 
-    public Display(Runtime runtime) {
-        this.runtime = runtime;
-        this.displayItems = new ArrayList();
-        this.selectionId = -1;
+    public Display(Core core, Settings settings) {
+        this.core = core;
+        this.settings = settings;
+        displayItems = new ArrayList<>();
+        selectionId = -1;
     }
 
     public Color getBgColor() {
-        return this.runtime.settings.bgColor;
+        return settings.bgColor;
     }
 
     private void addDisplayItem(int x, int y, int w, boolean selectable, String data, int id) {
-        Display.displayItem item = new displayItem();
-        item.id = id;
-        item.selectable = selectable;
-        if(!selectable) {
-            item.state = WordState.KNOWN;
+
+        Color bgColor = selectionId == id ? settings.selectionColor : settings.bgColor;
+        Color textColor = null;
+        Color lineColor;
+        if (!selectable) {
+            textColor = settings.knownColor;
+            lineColor = settings.bgColor;
         } else {
-            item.state = this.runtime.userDB.getWordStatus(data);
-            int freqRate = this.runtime.freqDB.getFreqRate(data);
+            switch (core.getWordStatus(data)) {
+                case KNOWN:
+                    textColor = settings.knownColor;
+                    break;
+                case LEARNING:
+                    textColor = settings.learningColor;
+                    break;
+                case NAME:
+                    textColor = settings.nameColor;
+                    break;
+                case UNKNOWN:
+                    textColor = settings.unknownColor;
+                    break;
+            }
+            int freqRate = core.getFreqRate(data);
             if(freqRate == -1) {
-                item.frequency = null;
-            } else if(freqRate > this.runtime.settings.freqLevel2) {
-                item.frequency = Display.Frequency.LOW;
-            } else if(freqRate < this.runtime.settings.freqLevel1) {
-                item.frequency = Display.Frequency.HIGH;
+                lineColor = settings.bgColor;
+            } else if(freqRate > settings.freqLevel2) {
+                lineColor = settings.lowFrequencyColor;
+            } else if(freqRate < settings.freqLevel1) {
+                lineColor = settings.highFrequencyColor;
             } else {
-                item.frequency = Display.Frequency.MEDIUM;
+                lineColor = settings.mediumFrequencyColor;
             }
         }
 
-        item.x = x;
-        item.y = y;
-        item.w = w;
-        item.h = this.lineHeight;
-        item.word = data;
-        this.displayItems.add(item);
+        this.displayItems.add(new DisplayItem(data, id, x, y, w, lineHeight, textColor, lineColor, bgColor, selectable));
     }
 
     private int getWordWidth(String word) {
@@ -110,171 +126,64 @@ public class Display implements Iterable<IDisplayItem> {
         return 40;
     }
 
-    private boolean setLineListMode(int lineNumber) {
-        int maxLine = lineNumber + this.heightInLines - 1;
-        this.displayItems.clear();
-        if(lineNumber >= 0 && lineNumber < this.runtime.unknownUnique.size()) {
-            for(int i = lineNumber; i < this.runtime.unknownUnique.size() && i <= maxLine; ++i) {
-                UniqueWord word = (UniqueWord)this.runtime.uniqueWords.get(((Integer)this.runtime.unknownUnique.get(i)).intValue());
-                String wordStr = ((TextItem) this.runtime.words.get(word.firstOccurrence)).getWord();
-                int freqRate = word.freqRate;
-                String index = Integer.toString(i + 1) + " ";
-                String rate = " (" + Integer.toString(freqRate) + ")";
-                int w1 = this.getWordWidth(index);
-                int w2 = ((TextItem) this.runtime.words.get(word.firstOccurrence)).getWidth();
-                int w3 = this.getWordWidth(rate);
-                this.addDisplayItem(0, (i - lineNumber) * this.lineHeight, w1, false, index, -1);
-                this.addDisplayItem(w1, (i - lineNumber) * this.lineHeight, w2, true, wordStr, ((Integer)this.runtime.unknownUnique.get(i)).intValue());
-                if(freqRate != -1) {
-                    this.addDisplayItem(w1 + w2, (i - lineNumber) * this.lineHeight, w3, false, rate, -1);
-                }
+    private void setListMode(int lineNumber) {
+        List<UniqueWord> inRange = core.getInRange(lineNumber, lineNumber + heightInLines);
+        displayItems.clear();
+        for(int i = 0; i < inRange.size(); i++) {
+            UniqueWord word = inRange.get(i);
+            String wordStr = core.getWords().get(word.firstOccurrence).getWord();
+            int freqRate = word.freqRate;
+            String index = Integer.toString(lineNumber + i + 1) + " ";
+            String rate = " (" + Integer.toString(freqRate) + ")";
+            int w1 = getWordWidth(index);
+            int w2 = core.getWords().get(word.firstOccurrence).getWidth();
+            int w3 = getWordWidth(rate);
+            this.addDisplayItem(0, i * lineHeight, w1, false, index, -1);
+            this.addDisplayItem(w1, i * lineHeight, w2, true, wordStr, word.firstOccurrence);
+            if(freqRate != -1) {
+                addDisplayItem(w1 + w2, i * lineHeight, w3, false, rate, -1);
             }
-
-            return true;
-        } else {
-            return true;
         }
     }
 
-    public boolean setLine(int lineNumber, boolean textMode) {
-        return textMode?this.setLineTextMode(lineNumber):this.setLineListMode(lineNumber);
+    public void setLine(int lineNumber, boolean textMode) {
+        if (textMode) {
+            setTextMode(lineNumber);
+        } else {
+            setListMode(lineNumber);
+        }
     }
 
-    private boolean setLineTextMode(int lineNumber) {
+    private void setTextMode(int lineNumber) {
         int maxLine = lineNumber + this.heightInLines - 1;
         this.displayItems.clear();
-        if(lineNumber >= 0 && lineNumber < this.runtime.lineStarts.size()) {
-            int startWord = ((Integer)this.runtime.lineStarts.get(lineNumber)).intValue();
+        if(lineNumber >= 0 && lineNumber < lineStarts.size()) {
+            int startWord = lineStarts.get(lineNumber);
 
-            for(int i = startWord; i < this.runtime.words.size(); ++i) {
-                TextItem currentWord = (TextItem)this.runtime.words.get(i);
+            for(int i = startWord; i < core.getWords().size(); ++i) {
+                TextItem currentWord = core.getWords().get(i);
                 if(currentWord.getLineId() > maxLine) {
                     break;
                 }
 
                 if(currentWord.getType() != WordType.NEWLINE && currentWord.getType() != WordType.SPACE) {
-                    this.addDisplayItem(currentWord.getX(), (currentWord.getLineId() - lineNumber) * this.lineHeight, currentWord.getWidth(), currentWord.getType() == WordType.WORD, currentWord.getWord(), i);
+                    addDisplayItem(currentWord.getX(), (currentWord.getLineId() - lineNumber) * lineHeight,
+                            currentWord.getWidth(), currentWord.getType() == WordType.WORD, currentWord.getWord(), i);
                 }
             }
-
-            return true;
-        } else {
-            return true;
         }
     }
 
     public boolean onClick(int x, int y) {
-        int oldSelectionId = this.selectionId;
-        this.selectionId = -1;
-        Iterator i$ = this.displayItems.iterator();
-
-        while(i$.hasNext()) {
-            Display.displayItem item = (Display.displayItem)i$.next();
-            if(item.pointInside(x, y)) {
-                this.selectionId = item.id;
+        int oldSelectionId = selectionId;
+        selectionId = -1;
+        for (DisplayItem item : displayItems) {
+            if (item.pointInside(x, y)) {
+                this.selectionId = item.getId();
                 break;
             }
         }
-
         return this.selectionId != oldSelectionId;
     }
 
-    private class displayItemsIterator<IDisplayItem> implements Iterator<IDisplayItem> {
-        int nextElement;
-
-        private displayItemsIterator() {
-            this.nextElement = 0;
-        }
-
-        public boolean hasNext() {
-            return this.nextElement < Display.this.displayItems.size();
-        }
-
-        public IDisplayItem next() {
-            return (IDisplayItem) displayItems.get(this.nextElement++);
-        }
-
-        public void remove() {
-        }
-    }
-
-    private class displayItem implements IDisplayItem {
-        private String word;
-        private int id;
-        private int x;
-        private int y;
-        private int w;
-        private int h;
-        private WordState state;
-        private Display.Frequency frequency;
-        private boolean selectable;
-
-        private displayItem() {
-        }
-
-        public String getWord() {
-            return this.word;
-        }
-
-        public int getX() {
-            return this.x;
-        }
-
-        public int getY() {
-            return this.y;
-        }
-
-        public int getW() {
-            return this.w;
-        }
-
-        public int getH() {
-            return this.h;
-        }
-
-        public Color getTextColor() {
-            switch(this.state) {
-                case UNKNOWN:
-                    return Display.this.runtime.settings.unknownColor;
-                case KNOWN:
-                    return Display.this.runtime.settings.knownColor;
-                case LEARNING:
-                    return runtime.settings.learningColor;
-                default:
-                    return Display.this.runtime.settings.nameColor;
-            }
-        }
-
-        public Color getBgColor() {
-            return this.selectable && this.id == Display.this.selectionId?Display.this.runtime.settings.selectionColor:Display.this.runtime.settings.bgColor;
-        }
-
-        public Color getLineColor() {
-            if(this.state == WordState.UNKNOWN && this.frequency != null) {
-                switch(this.frequency) {
-                    case HIGH:
-                        return Display.this.runtime.settings.highFrequencyColor;
-                    case MEDIUM:
-                        return Display.this.runtime.settings.mediumFrequencyColor;
-                    default:
-                        return Display.this.runtime.settings.lowFrequencyColor;
-                }
-            } else {
-                return null;
-            }
-        }
-
-        private boolean pointInside(int x, int y) {
-            return this.selectable && this.x <= x && this.x + this.w >= x && this.y <= y && this.y + this.h >= y;
-        }
-    }
-
-    private static enum Frequency {
-        HIGH,
-        MEDIUM,
-        LOW;
-
-        private Frequency() {
-        }
-    }
 }

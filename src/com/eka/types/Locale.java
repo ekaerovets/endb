@@ -10,6 +10,4 @@ public enum Locale {
     ES,
     CH;
 
-    private Locale() {
-    }
 }

@@ -12,6 +12,4 @@ public class UniqueWord {
     public int freqRate;
     public boolean unknown;
 
-    public UniqueWord() {
-    }
 }
