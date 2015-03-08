@@ -22,6 +22,8 @@ public class Core {
     private int learningCount;
     private int unknownUniqueCount;
 
+    private Random rnd = new Random();
+
     public Core() {
         userDB = new UserDB();
         freqDB = new FreqDB();
@@ -54,6 +56,7 @@ public class Core {
 
     public void setWordStatus(String word, WordState newStatus) {
 
+        System.out.println(word + " -> " + newStatus);
         int occurences = getOccurencesCount(word);
         switch (userDB.getWordStatus(word)) {
             case KNOWN:
@@ -92,6 +95,8 @@ public class Core {
         } else if (!oldUnknown && newUnknown) {
             unknownUniqueCount++;
         }
+
+        uniqueIndex.get(word).unknown = newUnknown;
 
         userDB.setWordStatus(word, newStatus);
     }
@@ -238,6 +243,22 @@ public class Core {
                 return r1 - r2;
             }
         });
+    }
+
+    public int getQuizWordId() {
+        List<UniqueWord> inRange = getInRange(0, 500);
+        if (inRange.size() == 0) {
+            return -1;
+        }
+        int index = rnd.nextInt(inRange.size());
+        UniqueWord uniqueWord = inRange.get(index);
+        int occurrencesCount = uniqueWord.occurrencesCount;
+        index = rnd.nextInt(occurrencesCount);
+        int id = uniqueWord.firstOccurrence;
+        for (int i = 0; i < index; i++) {
+            id = words.get(id).getNextId();
+        }
+        return id;
     }
 
 }

@@ -57,6 +57,12 @@ public class MainForm implements Observer {
     public MainForm() {
         model = new Model();
         model.addObserver(this);
+        chbQuizMode.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                model.setQuizMode(e.getStateChange() == ItemEvent.SELECTED);
+            }
+        });
         this.saveButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 MainForm.this.model.onSavePressed();

@@ -60,6 +60,17 @@ public class Model extends Observable {
 
     public void setQuizMode(boolean quizMode) {
         this.quizMode = quizMode;
+        if (textMode && quizMode) {
+            int quizWordId = core.getQuizWordId();
+            if (quizWordId != -1) {
+                gotoWord(quizWordId);
+                display.setLine(textModeLineId, textMode);
+                viewChanged = true;
+                setChanged();
+                notifyObservers();
+            }
+        }
+
     }
 
     public boolean isButtonsChanged() {
@@ -144,7 +155,9 @@ public class Model extends Observable {
     }
 
     private void gotoWord(int id) {
-        int lineId = (core.getWords().get(id)).getLineId();
+        int lineId = (core.getWords().get(id)).getLineId() - 3;
+        if (lineId < 0)
+            lineId = 0;
         textMode = true;
         textModeLineId = lineId;
         display.setSelectionId(id);
@@ -155,6 +168,7 @@ public class Model extends Observable {
     public void onViewKeyPress(int key) {
         int selectionId = display.getSelectionId();
         if (selectionId >= 0) {
+            boolean stateChanged = false;
             TextItem selectedWord = core.getWords().get(selectionId);
             System.out.println(key);
             switch (key) {
@@ -165,15 +179,25 @@ public class Model extends Observable {
                 case 76:
                     // key L
                     setWordState(selectionId, WordState.LEARNING);
+                    stateChanged = true;
                     break;
                 case 113:
+                case 85: // U
                     this.setWordState(selectionId, WordState.UNKNOWN);
+                    stateChanged = true;
                     break;
                 case 114:
+                case 75: // K
                     this.setWordState(selectionId, WordState.KNOWN);
+                    stateChanged = true;
                     break;
                 case 115:
+                case 78:
                     this.setWordState(selectionId, WordState.NAME);
+                    stateChanged = true;
+                    break;
+                case 83: // S (skip)
+                    stateChanged = true;
                     break;
                 case 120:
                     if (textMode) {
@@ -195,6 +219,12 @@ public class Model extends Observable {
                 this.gotoLine(0);
             }
 
+            if (textMode && quizMode && stateChanged) {
+                int quizWordId = core.getQuizWordId();
+                if (quizWordId != -1) {
+                    gotoWord(quizWordId);
+                }
+            }
             display.setLine(textMode ? textModeLineId : listModeLineId, textMode);
             this.viewChanged = true;
             this.setChanged();

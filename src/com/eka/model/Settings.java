@@ -30,13 +30,13 @@ public class Settings {
 
     public void setDefaults() {
         this.bgColor = new Color(237, 237, 237);
-        this.selectionColor = new Color(136, 136, 136);
+        this.selectionColor = new Color(206, 206, 206);
         this.knownColor = new Color(0, 32, 0);
-        this.unknownColor = new Color(160, 0, 0);
-        learningColor = new Color(106, 212, 34);
-        this.nameColor = new Color(32, 112, 112);
+        this.unknownColor = new Color(209, 0, 0);
+        learningColor = new Color(53, 126, 34);
+        this.nameColor = new Color(32, 92, 92);
         this.highFrequencyColor = new Color(0, 255, 0);
-        this.mediumFrequencyColor = new Color(0, 0, 160);
-        this.lowFrequencyColor = new Color(160, 160, 160);
+        this.mediumFrequencyColor = new Color(205, 103, 0);
+        this.lowFrequencyColor = new Color(170, 170, 170);
     }
 }
