@@ -137,8 +137,12 @@ public class MainForm implements Observer {
 
         KeyEventDispatcher keyEventDispatcher = new KeyEventDispatcher() {
             public boolean dispatchKeyEvent(KeyEvent e) {
-                MainForm.this.model.onViewKeyPress(e.getKeyCode());
-                return true;
+                if (e.getID() == 402) {
+                    MainForm.this.model.onViewKeyPress(e.getKeyCode());
+                    return true;
+                } else {
+                    return false;
+                }
             }
         };
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventDispatcher);

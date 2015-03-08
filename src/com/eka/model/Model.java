@@ -99,21 +99,27 @@ public class Model extends Observable {
     public void onViewClick(int x, int y) {
         if (display.onClick(x, y)) {
             int selectionId = display.getSelectionId();
-            if (selectionId < 0) {
+            /*if (selectionId < 0) {
                 return;
-            }
+            }*/
+            display.setLine(textMode ? textModeLineId : listModeLineId, textMode);
 
-            this.selectionChanged(selectionId);
-            this.viewChanged = true;
-            this.setChanged();
-            this.notifyObservers();
+            selectionChanged(selectionId);
+            viewChanged = true;
+            setChanged();
+            notifyObservers();
         }
 
     }
 
     private void selectionChanged(int selectionId) {
-        occurrences = core.getOccurencesCount(core.getWords().get(selectionId).getWord());
-        occurrenceId = core.getWords().get(selectionId).getCurIndex();
+        if (selectionId >= 0) {
+            occurrences = core.getOccurencesCount(core.getWords().get(selectionId).getWord());
+            occurrenceId = core.getWords().get(selectionId).getCurIndex();
+        } else {
+            occurrences = 0;
+            occurrenceId = 0;
+        }
     }
 
     public void changeMode() {
@@ -250,6 +256,8 @@ public class Model extends Observable {
     }
 
     private void onContextChanged() {
+        if (fm == null)
+            return;
         display.setLineHeight(fm.getHeight());
         display.setDisplayHeight(displayHeight);
         this.displayHeightLines = display.getHeightInLines();

@@ -101,8 +101,8 @@ public class Display {
                     break;
             }
             int freqRate = core.getFreqRate(data);
-            if(freqRate == -1) {
-                lineColor = settings.bgColor;
+            if(freqRate == -1 || core.getWordStatus(data) == WordState.KNOWN || core.getWordStatus(data) == WordState.NAME) {
+                lineColor = null;
             } else if(freqRate > settings.freqLevel2) {
                 lineColor = settings.lowFrequencyColor;
             } else if(freqRate < settings.freqLevel1) {
